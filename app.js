@@ -176,16 +176,21 @@ app.post('/promise/register', function (req, res) {
   // contract.registerPromise.sendTransaction({from: req.params.fromAddress, gas:, req.params.privateKey, req.params.value})
   // transactionSend(req.params.fromAddress, toAddress, req.params.privateKey, req.params.value)
   const data = contract.methods.registerPromise(req.body.blogUrl, req.body.expiredAt)
-  var rawTx = setTransaction(req.body.fromAddress, contractAddress, req.body.value, data);
+  var rawTx = setTransaction(req.body.fromAddress, contractAddress, req.body.value, data.encodeABI());
   sendTransaction(rawTx, req.body.privateKey)
+
 })
 
 app.post('/promise/achieve', function (req, res) {
-
+  const data = contract.methods.achievePromise()
+  var rawTx = setTransaction(req.body.fromAddress, contractAddress, 0, data);
+  sendTransaction(rawTx, req.body.privateKey)
 })
 
 app.post('/promise/break', function (req, res) {
-
+  const data = contract.methods.breakPromise()
+  var rawTx = setTransaction(req.body.fromAddress, contractAddress, req.body.value, data.encodeABI())
+  sendTransaction(rawTx, req.body.privateKey)
 })
 
 app.get('/getbalance', function (req, res) {
@@ -201,8 +206,8 @@ async function setTransaction(fromAddress, toAddress, value, data) {
   const count = await web3.eth.getTransactionCount(fromAddress);
   nonce = count.toString(16);
   const countHex = `0x${nonce}`;
-  console.log('YYYYYY', countHex)
-  const gasPrice = 20000;
+  var gasPrice = 30000000000000;
+  var gasLimit = 	3000000;
   // web3.eth.getGasPrice((error, result) => {
   //   if (error) {
   //     gasPrice = 0
@@ -214,7 +219,7 @@ async function setTransaction(fromAddress, toAddress, value, data) {
   const rawTx = {
     nonce: countHex,
     gasPrice: web3.utils.toHex(gasPrice),
-    gasLimit: web3.utils.toHex(4700000),
+    gasLimit: web3.utils.toHex(gasLimit),
     to: toAddress,
     value: web3.utils.toWei(value.toString(), "ether"),
     data: data
@@ -229,9 +234,9 @@ async function sendTransaction(rawTx, privateKey) {
 }
 
 function signTx(rawTx, privateKey) {
-    var priKey = Buffer.from(privateKey, 'hex');
     const tx = new ethTx(rawTx);
-    console.log('TTTTTTTT', priKey)
+    var priKey = new Buffer(privateKey.slice(2), 'hex');
+
     tx.sign(priKey);
     const serializedTx = tx.serialize();
     return serializedTx
